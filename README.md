@@ -32,11 +32,12 @@ BiocManager::install("plger/scDblFinder")
 
 For the pratical part of the workshop, we will be analyzing a replicated two-condition dataset of brain cortex tissue from mice treated with lipopolysaccharide (LPS), which is available [HERE](http://imlspenticton.uzh.ch/teaching/BC2_2019-workshop_multi-scRNA-seq).
 
-* **1-SCE_reduced.rds**: `SingleCellExperiment` (SCE) subset of the LPS dataset from Crowell *et al.*[^1]
+* **1-SCE_reduced.rds**: `SingleCellExperiment` (SCE) subset of the LPS dataset from Crowell *et al.*<sup>[1](#f1)</sup>
 * **2-SO_integrated.rds**: `SeuratObject` obtained after preprocessing & integration
 * **3-SCE_clustered.rds**: final clustered & annotated SCE for downstream analyses
 
-[^1]: Crowell HL, Soneson C\*, Germain P-L\*,  
+<a name="f1">[1]</a>: 
+Crowell HL, Soneson C\*, Germain P-L\*,  
 Calini D, Collin L, Raposo C, Malhotra D & Robinson MD:  
 On the discovery of population-specific state transitions from  
 multi-sample multi-condition single-cell RNA sequencing data.  
