@@ -1,0 +1,68 @@
+---
+title: Cheatsheet
+date: |
+  | [BC]2 workshop | September 9th, 2019
+  | "Analysis of multi-sample multi-group scRNA-seq data"
+author:
+- name: HL Crowell
+  affiliation:
+  - &IMLS Institute for Molecular Life Sciences, University of Zurich
+  - &SIB SIB Swiss Institute of Bioinformatics, Zurich
+- name: P-L Germain
+  affiliation:
+  - *IMLS
+  - *SIB
+- name: MD Robinson
+  affiliation:
+  - *IMLS
+  - *SIB
+output: 
+  BiocStyle::pdf_document:
+    number_sections: false
+    toc: false
+---
+
+\newcommand{\x}{\noalign{\vskip 0.4em}}
+
+\begin{tabular}{p{4cm}p{11cm}}
+
+\multicolumn{2}{r}{\textbf{QC \& filtering with \texttt{scater}}} \\ 
+\hline \x
+
+\texttt{addQCPerCell/Feature} & Compute cell-/gene-level QC metrics \& add them to a SCE \\ \x
+\texttt{isOutlier} & Determine outliers based on median absolute deviation (MAD) \\ \x\x\x
+
+\multicolumn{2}{r}{\textbf{Integration \& clustering with \texttt{Seurat}}} \\ 
+\hline \x
+
+\texttt{CreateSeuratObject} & Contruct a \texttt{SeuratObject} (SO) \\ \x
+\texttt{SplitObject} & Split a SO by some factor (e.g., sample ID) \\ \x
+\texttt{NormalizeData} & Normalization of count data \\ \x
+\texttt{FindVariableFeatures} & Identify HVGs based on the mean-variance relationship \\ \x
+\texttt{ScaleData} & Scale \& center individual features \\ \x
+\texttt{FindIntegrationAnchors} & Identification of integration anchors \\ \x
+\texttt{IntegrateData} & Dataset integration using a pre-compute anchorset \\ \x
+\texttt{RunX} & Dimension reduction (\texttt{X = PCA, TSNE, UMAP, ...}) \\ \x
+\texttt{FindNeighbors} & Shared Nearest Neighbor (SNN) graph construction\\ \x
+\texttt{FindClusters} & Cluster identification based on a pre-computed SNN graph \\ \x\x\x
+
+\multicolumn{2}{r}{\textbf{DS Analysis with \texttt{muscat}}} \\ 
+\hline \x
+
+\texttt{prepSCE} & SCE reformatting for \texttt{muscat} \\ \x
+\texttt{aggregateData} & Aggregation of single-cell to pseudobulk data \newline (e.g., sum of counts by cluster-sample) \\ \x
+\texttt{pbDS} & Sample-level DS analysis with \texttt{edgeR, limma, DESeq2} \\ \x
+\texttt{mmDS} & Cell-level DS analysis using mixed models \\ \x
+\texttt{calcExprFreqs} & Compute expression frequencies by sample and/or group \\ \x
+\texttt{resDS} & Reformat DS results into wide- or tidy-table format \\ \x\x\x
+
+\multicolumn{2}{r}{\textbf{Visualization with \texttt{scater} \& \texttt{muscat}}} \\ 
+\hline \x
+
+\texttt{plotX} & Reduced dimension plot (\texttt{X = PCA, TSNE, UMAP, ...}) \\ \x
+\texttt{plotExpression} & Violin plots against categorical covariate (e.g., sample ID) \\ \x
+\texttt{pbMDS} & Pseudobulk-level multidimensional scaling plot \\ \x
+\texttt{pbHeatmap} & Heatmap of cluster-sample pseudobulks \\ \x
+\texttt{upset} & Upset plot, e.g., intersecting DS genes across clusters (\texttt{UpSetR} package) \\
+
+\end{tabular}
