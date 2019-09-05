@@ -1,0 +1,25 @@
+---
+title: "Contents"
+site: workflowr::wflow_site
+output:
+  workflowr::wflow_html:
+    toc: false
+---
+
+- [Preprocessing](1-preprocessing.html):
+    - Calculation of QC metrics & identification of outliers using `scater`
+    - Dimension reduction & dataset integration with `Seurat`
+    
+- [Clustering](2-clustering.html):
+    - `Seurat` clustering
+    - Heatmap of canonical marker genes
+    - Manual cluster annotation
+    
+- [Annotation](3-differential.html):
+    - Aggregation to pseudobulk sum of counts
+    - Pseuobulk-level MDS plot
+    - DS analysis with `muscat`
+    - Reformatting & filtering of results
+    - Sample-level viz.: Pseudobulk-level heatmap
+    - Cell-level viz.: Violin plots
+    - Upset plot intersecting DS gene across clusters

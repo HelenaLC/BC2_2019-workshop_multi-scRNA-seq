@@ -1,0 +1,152 @@
+---
+title: "Clustering"
+author: 
+- name: Pierre-Luc Germain
+  affiliation:
+  - &IMLS Institute for Molecular Life Sciences, University of Zurich, Switzerland
+  - &SIB Swiss Institute of Bioinformatics (SIB), University of Zurich, Switzerland  
+- name: Helena L. Crowell
+  affiliation: 
+  - *IMLS
+  - *SIB
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document:
+    toc: true
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(cache = TRUE, autodep = TRUE)
+```
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(ComplexHeatmap)
+library(dplyr)
+library(SingleCellExperiment)
+library(Seurat)
+library(viridis)
+```
+
+# Load data
+
+```{r load-data}
+so <- readRDS(file.path("output", "2-SO_integrated.rds"))
+```
+
+# Dimension redcution
+
+```{r dr, message = FALSE, fig.width = 5, fig.height = 3}
+so <- RunPCA(so, npcs = 30, verbose = FALSE)
+ElbowPlot(so)
+so <- RunUMAP(so, reduction = "pca", dims = seq_len(9), verbose = FALSE)
+```
+
+# Clustering
+
+```{r clustering, fig.width = 6, fig.height = 4}
+so <- FindNeighbors(so, reduction = "pca", dims = seq_len(9), verbose = FALSE)
+
+for (r in (res <- c(0.1, 0.2, 0.4, 0.8, 1, 1.2, 2)))
+    so <- FindClusters(so, resolution = r, random.seed = 1, verbose = FALSE)
+
+cols <- grep("res.", names(so@meta.data))
+vapply(so@meta.data[cols], nlevels, numeric(1))
+
+DimPlot(so, reduction = "umap", group.by = "integrated_snn_res.0.1")
+Idents(so) <- so$integrated_snn_res.0.1
+```
+
+# SCE construction
+
+```{r sce}
+sce <- as.SingleCellExperiment(so, assay = "RNA")
+colData(sce) <- as.data.frame(colData(sce)) %>% 
+    mutate_if(is.character, as.factor) %>% 
+    DataFrame(row.names = colnames(sce))
+sce$cluster_id <- sce$integrated_snn_res.0.1
+```
+
+# Annotation
+
+```{r anno, fig.width = 8, fig.height = 5}
+# canoncial marker genes
+mgs <- list(
+    astrocytes = c("Aqp4", "Gfap", "Fgfr3"),
+    endothelial = c("Cldn5","Nostrin"),
+    microglia = c("C1qb","Tyrobp"),
+    neuronal = c("Snap25", "Stmn2"),
+    neuronal_excitatory = "Slc17a7",
+    neuronal_inhibitory = "Gad1",
+    oligodendrocyte = "Opalin",
+    OPC = "Pdgfra",
+    pericytes = c("Pdgfrb", "Notch3", "Cspg4"))
+
+mgs <- lapply(mgs, sapply, function(g) 
+    grep(paste0(g, "$"), rownames(sce), value = TRUE))
+
+gs <- gsub(".*\\.", "", unlist(mgs))
+ks <- rep.int(names(mgs), vapply(mgs, length, numeric(1)))
+labs <- sprintf("%s(%s)", gs, ks)
+
+# split cells by cluster
+cs_by_k <- split(colnames(sce), sce$cluster_id)
+
+# compute cluster-marker means
+ms_by_k <- lapply(mgs, function(gs)
+    vapply(cs_by_k, function(i)
+        rowMeans(logcounts(sce)[gs, i, drop = FALSE]), 
+        numeric(length(gs))))
+
+# prep. for plotting & scale b/w 0 and 1
+mat <- do.call("rbind", ms_by_k)
+mat <- muscat:::.scale(mat)
+rownames(mat) <- gs
+
+cols <- muscat:::.cluster_colors[seq_along(mgs)]
+cols <- setNames(cols, names(mgs))
+row_anno <- rowAnnotation(
+    df = data.frame(label = ks),
+    col = list(label = cols),
+    gp = gpar(col = "white")) 
+
+Heatmap(mat,
+    name = "scaled avg.\nexpression",
+    col = viridis(10),
+    cluster_rows = FALSE,
+    cluster_columns = FALSE,
+    row_names_side = "left",
+    column_title = "cluster_id",
+    column_title_side = "bottom",
+    rect_gp = gpar(col = "white"),
+    left_annotation = row_anno)
+
+# cluster annotation
+anno <- list(
+  "Astrocytes" = 1,
+  "Endothelial" = 8,
+  "Microglia" = 7,
+  "OPC" = 6,
+  "Oligodendrocytes" = 2,
+  "Neuronal_excit" = c(0, 3, 7),
+  "Neuronal_inhib" = c(4, 5))
+
+m <- match(sce$cluster_id, unlist(anno))
+ns <- vapply(anno, length, numeric(1))
+labs <- rep.int(names(anno), ns)
+sce$cluster_id <- factor(labs[m], levels = names(anno))
+
+# remove unassigned cells
+sce <- sce[, !is.na(sce$cluster_id)]
+
+# cluster-sample cell counts
+table(sce$sample_id, sce$cluster_id)
+```
+
+# Write SCE to .rds
+
+```{r save}
+saveRDS(sce, file.path("output", "3-SCE_clustered.rds"))
+```
+

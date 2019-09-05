@@ -1,0 +1,92 @@
+---
+title: "Preprocessing"
+author: 
+- name: Pierre-Luc Germain
+  affiliation:
+  - &IMLS Institute for Molecular Life Sciences, University of Zurich, Switzerland
+  - &SIB Swiss Institute of Bioinformatics (SIB), University of Zurich, Switzerland  
+- name: Helena L. Crowell
+  affiliation: 
+  - *IMLS
+  - *SIB
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output:
+  html_document:
+    toc: true
+---
+
+```{r include = FALSE}
+knitr::opts_chunk$set(cache = TRUE, autodep = TRUE)
+```
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(scater)
+library(scDblFinder)
+library(SingleCellExperiment)
+library(Seurat)
+library(future.apply)
+```
+
+# Load data
+
+```{r load-data}
+sce <- readRDS(file.path("data", "1-SCE_reduced.rds"))
+dim(sce)
+```
+
+# Doublet removal
+
+```{r doublets, eval = FALSE}
+sce <- scDblFinder(sce, samples = sce$sample_id)
+sce <- sce[, sce$scDblFinder.class != "doublet"]
+dim(sce)
+```
+
+# `scater` QC & filtering
+
+```{r filtering}
+# compute cell & gene QC metrics
+(mito <- grep("mt-", rownames(sce), value = TRUE))
+sce <- addQCPerCell(sce, subsets = list(Mt = mito))
+sce <- addQCPerFeature(sce)
+
+ol1 <- isOutlier(sce$total, nmads = 3, type = "both", log = TRUE, batch = sce$sample_id)
+ol2 <- isOutlier(sce$detected, nmads = 3, type = "both", log = TRUE, batch = sce$sample_id)
+ol3 <- isOutlier(sce$subsets_Mt_percent, nmads = 3, type = "higher") & sce$subsets_Mt_percent > 0.08
+sce <- sce[, !(ol1 | ol2 | ol3)]
+dim(sce)
+```
+
+# `Seurat` integration
+
+```{r integration, message = FALSE, warning = FALSE}
+plan("multiprocess", workers = 20)
+options(future.globals.maxSize = 2e3*1024*1e3)
+
+so <- CreateSeuratObject(
+  counts = counts(sce), project = "LPS", 
+  meta.data = as.data.frame(colData(sce)))
+so <- SplitObject(so, split.by = "sample_id")
+
+# normalize, find HVGs & scale
+so <- lapply(so, NormalizeData, verbose = FALSE)
+so <- lapply(so, FindVariableFeatures, nfeatures = 3e3, selection.method = "vst")
+so <- lapply(so, ScaleData, verbose = FALSE)
+
+# find anchors & integrate
+as <- FindIntegrationAnchors(so, verbose = FALSE)
+so <- IntegrateData(anchorset = as, dims = seq_len(15), verbose = FALSE)
+
+# scale integrated data
+DefaultAssay(so) <- "integrated"
+so <- ScaleData(so, verbose = FALSE)
+```
+
+# Write SCE to .rds
+
+```{r save}
+saveRDS(so, file.path("output", "2-SO_integrated.rds"))
+```
+

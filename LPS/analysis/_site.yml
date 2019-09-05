@@ -1,0 +1,19 @@
+name: "LPS"
+output_dir: ../docs
+navbar:
+  title: "LPS"
+  left:
+  - text: Contents
+    href: index.html
+  - text: Preprocessing
+    href: 1-preprocessing.html
+  - text: Clustering
+    href: 2-clustering.html
+  - text: DS analysis
+    href: 3-differential.html
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    theme: cosmo
+    highlight: textmate
